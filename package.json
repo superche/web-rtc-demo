@@ -13,8 +13,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "export PUBLIC_URL=/web-rtc-demo && react-scripts build",
     "test": "react-scripts test",
+    "beforedeploy": "export PUBLIC_URL=/web-rtc-demo && node ./bin/before-deploy.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
