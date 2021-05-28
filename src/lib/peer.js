@@ -1,5 +1,4 @@
 import { dataChannelName, dataChannelParams } from './constants';
-import { SignalingServer } from './signaling-server';
 
 /**
  *  options: {
