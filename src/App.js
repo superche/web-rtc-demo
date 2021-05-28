@@ -1,5 +1,7 @@
 import { Component } from "react";
+import { SignalingServer } from './lib/signaling-server'
 import "./App.css";
+import { RTCPeer } from "./lib/peer";
 
 class App extends Component {
   constructor(props) {
@@ -13,6 +15,10 @@ class App extends Component {
     };
   }
 
+  componentDidMount() {
+    this.signalServer = new SignalingServer();
+  }
+
   async componentWillUnmount() {
     if (this.state.connected) {
       this.disconnect();
@@ -20,100 +26,49 @@ class App extends Component {
   }
 
   disconnect = () => {
-    this._localConnection.close();
-    this._remoteConnection.close();
-  };
+    this._localPeer.close();
+    this._remotePeer.close();
+  }
 
   connect = async () => {
     console.log("connect!");
     try {
-      const dataChannelParams = {
-        // For UDP semantics, set maxRetransmits to 0 and ordered to false.
-        ordered: false,
-        maxRetransmits: 0,
-      };
       // 1. setup connection
-      this._localConnection = new RTCPeerConnection();
-      this._localConnection.addEventListener("icecandidate", async (e) => {
-        console.log("local connection ICE candidate: ", e.candidate);
-        await this._remoteConnection.addIceCandidate(e.candidate);
+      const rtcPeerOptions = {
+        signalServer: this.signalServer,
+        onOpen: () => {
+          this.setState({ connected: true });
+        },
+        onClosed: () => {
+          this.setState({ connected: false });
+        },
+      };
+      this._localPeer = new RTCPeer({
+        ...rtcPeerOptions,
+        name: 'local peer',
+        onMessage: this._onLocalMessageReceived
       });
-
-      this._remoteConnection = new RTCPeerConnection();
-      this._remoteConnection.addEventListener("icecandidate", async (e) => {
-        console.log("remote connection ICE candidate: ", e.candidate);
-        await this._localConnection.addIceCandidate(e.candidate);
+      this._remotePeer = new RTCPeer({
+        ...rtcPeerOptions,
+        name: 'remote peer',
+        onMessage: this._onRemoteMessageReceived
       });
 
       // 2. setup channel
-      this._localChannel = this._localConnection.createDataChannel(
-        "messaging-channel",
-        dataChannelParams
-      );
-      this._localChannel.binaryType = "arraybuffer";
-      this._localChannel.addEventListener("open", () => {
-        console.log("Local channel open!");
-        this.setState({ connected: true });
-      });
-      this._localChannel.addEventListener("close", () => {
-        console.log("Local channel closed!");
-        this.setState({ connected: false });
-      });
-      this._localChannel.addEventListener(
-        "message",
-        this._onLocalMessageReceived
-      );
+      this._localPeer.setupChannel();
 
-      this._remoteConnection.addEventListener(
-        "datachannel",
-        this._onRemoteDataChannel
-      );
-
-      // 3. setup local offer
-      const initLocalOffer = async () => {
-        const localOffer = await this._localConnection.createOffer();
-        console.log(`Got local offer ${JSON.stringify(localOffer)}`);
-        const localDesc = this._localConnection.setLocalDescription(localOffer);
-        const remoteDesc =
-          this._remoteConnection.setRemoteDescription(localOffer);
-        return Promise.all([localDesc, remoteDesc]);
-      };
-      await initLocalOffer();
-
-      // 4. setup remote answer
-      const initRemoteAnswer = async () => {
-        const remoteAnswer = await this._remoteConnection.createAnswer();
-        console.log(`Got remote answer ${JSON.stringify(remoteAnswer)}`);
-        const localDesc =
-          this._remoteConnection.setLocalDescription(remoteAnswer);
-        const remoteDesc =
-          this._localConnection.setRemoteDescription(remoteAnswer);
-        return Promise.all([localDesc, remoteDesc]);
-      };
-      await initRemoteAnswer();
+      // 3. setup session
+      await this._localPeer.createOffer();
+      await this._remotePeer.createAnswer();
     } catch (err) {
       console.error(err);
     }
-  };
+  }
 
   _onLocalMessageReceived = (event) => {
     console.log(`Remote message received by local: ${event.data}`);
     this.setState({
       localMessages: this.state.localMessages + "> " + event.data + "\n",
-    });
-  };
-
-  _onRemoteDataChannel = (event) => {
-    console.log(`onRemoteDataChannel: ${JSON.stringify(event)}`);
-    this._remoteChannel = event.channel;
-    this._remoteChannel.binaryType = "arraybuffer";
-    this._remoteChannel.addEventListener(
-      "message",
-      this._onRemoteMessageReceived.bind(this)
-    );
-    this._remoteChannel.addEventListener("close", () => {
-      console.log("Remote channel closed!");
-      this.setState({ connected: false });
     });
   };
 
@@ -169,7 +124,7 @@ class App extends Component {
                 onClick={(e) =>
                   this._sendMessage(
                     this.state.localOutMessage,
-                    this._localChannel
+                    this._localPeer.channel
                   )
                 }
                 id='sendLocal'
@@ -205,7 +160,7 @@ class App extends Component {
                 onClick={(e) =>
                   this._sendMessage(
                     this.state.remoteOutMessage,
-                    this._remoteChannel
+                    this._remotePeer.channel
                   )
                 }
                 id='sendRemote'
