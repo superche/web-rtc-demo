@@ -50,7 +50,7 @@ body {
 }
 
 button {
-  background-color: #d84a38;
+  background-color: #00A86B;
   border: none;
   border-radius: 2px;
   color: white;
@@ -61,11 +61,11 @@ button {
 }
 
 button:active {
-  background-color: #cf402f;
+  background-color: #00a817;
 }
 
 button:hover {
-  background-color: #cf402f;
+  background-color: #00a817;
 }
 
 button[disabled] {
@@ -73,7 +73,7 @@ button[disabled] {
 }
 
 button[disabled]:hover {
-  background-color: #d84a38;
+  background-color: #00A86B;
 }
 
 canvas {
@@ -259,7 +259,7 @@ ul {
 
 @media screen and (max-width: 550px) {
   button:active {
-    background-color: darkRed;
+    background-color: darkgreen;
   }
 
   h1 {

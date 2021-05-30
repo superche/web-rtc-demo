@@ -135,7 +135,7 @@ class App extends Component {
             <div className='messageBox'>
               <label htmlFor='localIncoming'>Local incoming messages:</label>
               <textarea
-                className='message'
+                className='message message-incoming'
                 id='localIncoming'
                 disabled
                 value={this.state.localMessages}
@@ -171,7 +171,7 @@ class App extends Component {
             <div className='messageBox'>
               <label htmlFor='remoteIncoming'>Remote incoming messages:</label>
               <textarea
-                className='message'
+                className='message message-incoming'
                 id='remoteIncoming'
                 disabled
                 value={this.state.remoteMessages}

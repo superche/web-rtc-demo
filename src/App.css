@@ -11,6 +11,10 @@ textarea.message {
   margin: 1em 0;
 }
 
+textarea.message.message-incoming {
+  height: 20em;
+}
+
 label {
   font-weight: 400;
 }
